@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from app.api import api_router
 from app.core.config import Settings
+import os
 
 # Load settings
 settings = Settings()
@@ -23,6 +25,30 @@ app.add_middleware(
 
 # Include API routes with versioned prefix
 app.include_router(api_router, prefix=settings.api_v1_prefix)
+
+# Mount static files for admin dashboard
+dashboard_path = os.path.join(os.path.dirname(__file__), "dashboard")
+if os.path.exists(dashboard_path):
+    app.mount(
+        "/dashboard",
+        StaticFiles(directory=dashboard_path, html=True),
+        name="dashboard"
+    )
+
+
+@app.get("/dashboard/health")
+async def dashboard_health_check():
+    """
+    Health check endpoint for the admin dashboard.
+
+    Returns:
+        dict: Simple JSON status indicating the dashboard service is healthy
+    """
+    return {
+        "status": "healthy",
+        "service": "admin_dashboard",
+        "message": "Dashboard service is operational"
+    }
 
 
 @app.get("/")
