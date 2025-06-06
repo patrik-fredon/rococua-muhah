@@ -487,11 +487,30 @@ jobs:
 - **API Documentation**: http://localhost:8000/docs
 - **WebSocket Guide**: [`README_WEBSOCKETS.md`](README_WEBSOCKETS.md)
 - **Issues**: Create an issue for bug reports or feature requests
+Want to collaborate, chat tech, or just share a meme? Hit me up!
 
-## 📄 License
+- **Email**: patrik-fredon@fredonbytes.cloud
+- **Twitter**: [@PatrikFredon](https://twitter.com/freedompatrik)
+- **LinkedIn**: [Patrik Fredon](https://linkedin.com/in/patrikfredon)
+- **GitHub**: [patrikfredon](https://github.com/patrik-fredon)
+- **Portfolio**: [About-me](https://me.fredonbytes.cloud)
+- **FredonBytes**: [FredonBytes Home](https://fredonbytes.cloud)
 
-[Your License Here]
+
 
 ---
+<!-- Footer Section -->
+<div align="center">
+  
+### 💭 Final Thoughts
 
-**Happy coding!** 🎉
+Thanks for stopping by! If you liked this README, give it a ⭐ and follow me for more tech adventures. Let’s build something *dechberoucí* together!
+
+![Follow Me](https://img.shields.io/github/followers/patrik-fredon?label=Follow%20Me&style=social)
+
+> "True mastery in code quiets the chaos and unlocks innovation."
+
+<sub>© 2025 Fredon • Code Crafted for Tomorrow's Digital Frontier</sub>
+
+</div>
+
