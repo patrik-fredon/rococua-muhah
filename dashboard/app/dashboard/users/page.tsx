@@ -22,92 +22,69 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  CircularProgress,
+  FormControlLabel,
+  Switch,
+  Pagination,
 } from "@mui/material";
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
+  Person as PersonIcon,
 } from "@mui/icons-material";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import toast from "react-hot-toast";
-
-interface User {
-  id: string;
-  email: string;
-  username: string;
-  first_name?: string;
-  last_name?: string;
-  is_active: boolean;
-  roles: string[];
-  created_at: string;
-}
+import {
+  useUsers,
+  useCreateUser,
+  useUpdateUser,
+  useUpdateUserStatus,
+} from "../../../hooks/useUsersQuery";
+import { useRoles } from "../../../hooks/useRolesQuery";
+import { useWebSocket } from "../../../hooks/useWebSocket";
+import { UserCreate, UserUpdate } from "../../../services/usersApi";
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [openDialog, setOpenDialog] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState({
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [formData, setFormData] = useState<UserCreate & { password?: string }>({
     email: "",
     username: "",
+    password: "",
     first_name: "",
     last_name: "",
+    phone: "",
+    address: "",
     is_active: true,
-    roles: [] as string[],
+    is_verified: false,
   });
 
-  useEffect(() => {
-    loadUsers();
-  }, []);
+  // Queries
+  const {
+    data: users = [],
+    isLoading,
+    error,
+  } = useUsers((page - 1) * pageSize, pageSize);
+  const { data: roles = [] } = useRoles();
+  const createUserMutation = useCreateUser();
+  const updateUserMutation = useUpdateUser();
+  const updateStatusMutation = useUpdateUserStatus();
 
-  const loadUsers = async () => {
-    try {
-      setLoading(true);
-      // Simulate API call - replace with actual API call
-      const mockUsers: User[] = [
-        {
-          id: "1",
-          email: "admin@example.com",
-          username: "admin",
-          first_name: "Admin",
-          last_name: "User",
-          is_active: true,
-          roles: ["admin"],
-          created_at: "2024-01-01T00:00:00Z",
-        },
-        {
-          id: "2",
-          email: "john.doe@example.com",
-          username: "johndoe",
-          first_name: "John",
-          last_name: "Doe",
-          is_active: true,
-          roles: ["user"],
-          created_at: "2024-01-15T00:00:00Z",
-        },
-        {
-          id: "3",
-          email: "jane.smith@example.com",
-          username: "janesmith",
-          first_name: "Jane",
-          last_name: "Smith",
-          is_active: false,
-          roles: ["user", "moderator"],
-          created_at: "2024-02-01T00:00:00Z",
-        },
-      ];
-      setUsers(mockUsers);
-    } catch (error) {
-      toast.error("Failed to load users");
-    } finally {
-      setLoading(false);
-    }
-  };
+  // WebSocket for real-time updates
+  const { isConnected } = useWebSocket({
+    endpoint: "/ws/users",
+    onMessage: (data) => {
+      console.log("User update received:", data);
+      // Refetch users data when updates are received
+    },
+  });
 
-  const handleOpenDialog = (user?: User) => {
+  const handleOpenDialog = (user?: any) => {
     if (user) {
       setEditingUser(user);
       setFormData({
@@ -115,18 +92,23 @@ export default function UsersPage() {
         username: user.username,
         first_name: user.first_name || "",
         last_name: user.last_name || "",
+        phone: user.phone || "",
+        address: user.address || "",
         is_active: user.is_active,
-        roles: user.roles,
+        is_verified: user.is_verified,
       });
     } else {
       setEditingUser(null);
       setFormData({
         email: "",
         username: "",
+        password: "",
         first_name: "",
         last_name: "",
+        phone: "",
+        address: "",
         is_active: true,
-        roles: [],
+        is_verified: false,
       });
     }
     setOpenDialog(true);
@@ -138,51 +120,53 @@ export default function UsersPage() {
   };
 
   const handleSaveUser = async () => {
-    try {
-      // Simulate API call - replace with actual API call
-      if (editingUser) {
-        // Update user
-        const updatedUsers = users.map((u) =>
-          u.id === editingUser.id ? { ...u, ...formData } : u
-        );
-        setUsers(updatedUsers);
-        toast.success("User updated successfully");
-      } else {
-        // Create new user
-        const newUser: User = {
-          id: Date.now().toString(),
-          ...formData,
-          created_at: new Date().toISOString(),
-        };
-        setUsers([...users, newUser]);
-        toast.success("User created successfully");
-      }
-      handleCloseDialog();
-    } catch (error) {
-      toast.error("Failed to save user");
+    if (editingUser) {
+      // Update user
+      const { password, ...updateData } = formData;
+      await updateUserMutation.mutateAsync({
+        userId: editingUser.id,
+        userData: updateData as UserUpdate,
+      });
+    } else {
+      // Create new user
+      await createUserMutation.mutateAsync(formData as UserCreate);
     }
+    handleCloseDialog();
   };
 
-  const handleDeleteUser = async (userId: string) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
-      try {
-        // Simulate API call - replace with actual API call
-        setUsers(users.filter((u) => u.id !== userId));
-        toast.success("User deleted successfully");
-      } catch (error) {
-        toast.error("Failed to delete user");
-      }
-    }
+  const handleToggleUserStatus = async (
+    userId: string,
+    currentStatus: boolean
+  ) => {
+    await updateStatusMutation.mutateAsync({
+      userId,
+      statusData: { is_active: !currentStatus },
+    });
   };
 
   const filteredUsers = users.filter(
     (user) =>
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${user.first_name} ${user.last_name}`
+      `${user.first_name || ""} ${user.last_name || ""}`
         .toLowerCase()
         .includes(searchTerm.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredUsers.length / pageSize);
+
+  if (isLoading) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="400px"
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -192,9 +176,15 @@ export default function UsersPage() {
         alignItems="center"
         mb={3}
       >
-        <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
-          Users Management
-        </Typography>
+        <Box display="flex" alignItems="center">
+          <PersonIcon sx={{ mr: 1, fontSize: 32 }} />
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
+            Users Management
+          </Typography>
+          {isConnected && (
+            <Chip label="Live" color="success" size="small" sx={{ ml: 2 }} />
+          )}
+        </Box>
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -231,6 +221,7 @@ export default function UsersPage() {
                 <TableCell>Email</TableCell>
                 <TableCell>Username</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell>Verified</TableCell>
                 <TableCell>Roles</TableCell>
                 <TableCell>Created</TableCell>
                 <TableCell>Actions</TableCell>
@@ -238,26 +229,49 @@ export default function UsersPage() {
             </TableHead>
             <TableBody>
               {filteredUsers.map((user) => (
-                <TableRow key={user.id} hover>
+                <motion.tr
+                  key={user.id}
+                  component={TableRow}
+                  hover
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2 }}
+                >
                   <TableCell>
                     {user.first_name || user.last_name
-                      ? `${user.first_name} ${user.last_name}`.trim()
+                      ? `${user.first_name || ""} ${
+                          user.last_name || ""
+                        }`.trim()
                       : "-"}
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.username}</TableCell>
                   <TableCell>
-                    <Chip
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={user.is_active}
+                          onChange={() =>
+                            handleToggleUserStatus(user.id, user.is_active)
+                          }
+                          size="small"
+                        />
+                      }
                       label={user.is_active ? "Active" : "Inactive"}
-                      color={user.is_active ? "success" : "error"}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={user.is_verified ? "Verified" : "Pending"}
+                      color={user.is_verified ? "success" : "warning"}
                       size="small"
                     />
                   </TableCell>
                   <TableCell>
-                    {user.roles.map((role) => (
+                    {user.roles?.map((role) => (
                       <Chip
-                        key={role}
-                        label={role}
+                        key={role.id}
+                        label={role.display_name}
                         size="small"
                         sx={{ mr: 0.5 }}
                       />
@@ -273,19 +287,21 @@ export default function UsersPage() {
                     >
                       <EditIcon />
                     </IconButton>
-                    <IconButton
-                      size="small"
-                      onClick={() => handleDeleteUser(user.id)}
-                      color="error"
-                    >
-                      <DeleteIcon />
-                    </IconButton>
                   </TableCell>
-                </TableRow>
+                </motion.tr>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
+
+        <Box display="flex" justifyContent="center" mt={3}>
+          <Pagination
+            count={totalPages}
+            page={page}
+            onChange={(_, value) => setPage(value)}
+            color="primary"
+          />
+        </Box>
       </motion.div>
 
       <Dialog
@@ -301,10 +317,12 @@ export default function UsersPage() {
               fullWidth
               margin="normal"
               label="Email"
+              type="email"
               value={formData.email}
               onChange={(e) =>
                 setFormData({ ...formData, email: e.target.value })
               }
+              required
             />
             <TextField
               fullWidth
@@ -314,7 +332,21 @@ export default function UsersPage() {
               onChange={(e) =>
                 setFormData({ ...formData, username: e.target.value })
               }
+              required
             />
+            {!editingUser && (
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Password"
+                type="password"
+                value={formData.password || ""}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                required
+              />
+            )}
             <TextField
               fullWidth
               margin="normal"
@@ -333,26 +365,61 @@ export default function UsersPage() {
                 setFormData({ ...formData, last_name: e.target.value })
               }
             />
-            <FormControl fullWidth margin="normal">
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={formData.is_active}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    is_active: e.target.value as boolean,
-                  })
-                }
-              >
-                <MenuItem value={true}>Active</MenuItem>
-                <MenuItem value={false}>Inactive</MenuItem>
-              </Select>
-            </FormControl>
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Phone"
+              value={formData.phone}
+              onChange={(e) =>
+                setFormData({ ...formData, phone: e.target.value })
+              }
+            />
+            <TextField
+              fullWidth
+              margin="normal"
+              label="Address"
+              multiline
+              rows={2}
+              value={formData.address}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
+              }
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.is_active}
+                  onChange={(e) =>
+                    setFormData({ ...formData, is_active: e.target.checked })
+                  }
+                />
+              }
+              label="Active"
+              sx={{ mt: 2 }}
+            />
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.is_verified}
+                  onChange={(e) =>
+                    setFormData({ ...formData, is_verified: e.target.checked })
+                  }
+                />
+              }
+              label="Verified"
+              sx={{ mt: 1 }}
+            />
           </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseDialog}>Cancel</Button>
-          <Button onClick={handleSaveUser} variant="contained">
+          <Button
+            onClick={handleSaveUser}
+            variant="contained"
+            disabled={
+              createUserMutation.isPending || updateUserMutation.isPending
+            }
+          >
             {editingUser ? "Update" : "Create"}
           </Button>
         </DialogActions>

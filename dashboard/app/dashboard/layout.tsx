@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import {
   Box,
   Drawer,
@@ -18,32 +16,55 @@ import {
   Avatar,
   Menu,
   MenuItem,
-  CircularProgress,
+  Chip,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   People as PeopleIcon,
+  Security as SecurityIcon,
   Inventory as InventoryIcon,
   ShoppingCart as OrdersIcon,
-  Security as RolesIcon,
-  AccountCircle,
-  Logout,
-  Settings,
+  Settings as SettingsIcon,
+  Logout as LogoutIcon,
+  AccountCircle as AccountIcon,
 } from "@mui/icons-material";
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { useAuth } from "@/providers/AuthProvider";
-import toast from "react-hot-toast";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import { useAuth } from "../../providers/AuthProvider";
+import { useWebSocket } from "../../hooks/useWebSocket";
 
 const drawerWidth = 240;
 
-const navigationItems = [
-  { title: "Dashboard", icon: DashboardIcon, path: "/dashboard" },
-  { title: "Users", icon: PeopleIcon, path: "/dashboard/users" },
-  { title: "Products", icon: InventoryIcon, path: "/dashboard/products" },
-  { title: "Orders", icon: OrdersIcon, path: "/dashboard/orders" },
-  { title: "Roles", icon: RolesIcon, path: "/dashboard/roles" },
+const menuItems = [
+  {
+    text: "Dashboard",
+    icon: <DashboardIcon />,
+    path: "/dashboard",
+  },
+  {
+    text: "Users",
+    icon: <PeopleIcon />,
+    path: "/dashboard/users",
+    adminOnly: true,
+  },
+  {
+    text: "Roles",
+    icon: <SecurityIcon />,
+    path: "/dashboard/roles",
+    adminOnly: true,
+  },
+  {
+    text: "Products",
+    icon: <InventoryIcon />,
+    path: "/dashboard/products",
+  },
+  {
+    text: "Orders",
+    icon: <OrdersIcon />,
+    path: "/dashboard/orders",
+  },
 ];
 
 export default function DashboardLayout({
@@ -53,31 +74,18 @@ export default function DashboardLayout({
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const { user, logout, isAuthenticated, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const { user, logout } = useAuth();
+  const isAdmin = user?.roles?.some((role: any) => role.name === "admin");
 
-  useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isAuthenticated, loading, router]);
-
-  if (loading) {
-    return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return null;
-  }
+  // WebSocket connection for real-time updates
+  const { isConnected } = useWebSocket({
+    endpoint: "/ws/dashboard",
+    onMessage: (data: any) => {
+      console.log("Dashboard update:", data);
+    },
+  });
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -91,41 +99,82 @@ export default function DashboardLayout({
     setAnchorEl(null);
   };
 
-  const handleLogout = () => {
-    logout();
-    handleProfileMenuClose();
-    toast.success("Logged out successfully");
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
   };
 
   const drawer = (
-    <Box>
+    <div>
       <Toolbar>
-        <Typography variant="h6" noWrap component="div">
-          Admin Panel
-        </Typography>
+        <Box display="flex" alignItems="center" width="100%">
+          <Typography
+            variant="h6"
+            noWrap
+            component="div"
+            sx={{ fontWeight: 600 }}
+          >
+            Admin Panel
+          </Typography>
+          {isConnected && (
+            <Chip label="Live" color="success" size="small" sx={{ ml: 1 }} />
+          )}
+        </Box>
       </Toolbar>
       <Divider />
       <List>
-        {navigationItems.map((item) => (
-          <ListItem key={item.title} disablePadding>
-            <ListItemButton
-              onClick={() => router.push(item.path)}
-              sx={{
-                "&:hover": {
-                  backgroundColor: "primary.light",
-                  color: "primary.contrastText",
-                },
-              }}
-            >
-              <ListItemIcon>
-                <item.icon />
-              </ListItemIcon>
-              <ListItemText primary={item.title} />
-            </ListItemButton>
-          </ListItem>
-        ))}
+        {menuItems.map((item) => {
+          // Hide admin-only items from non-admin users
+          if (item.adminOnly && !isAdmin) {
+            return null;
+          }
+
+          const isActive = pathname === item.path;
+
+          return (
+            <ListItem key={item.text} disablePadding>
+              <ListItemButton
+                component={Link}
+                href={item.path}
+                selected={isActive}
+                sx={{
+                  "&.Mui-selected": {
+                    backgroundColor: "primary.main",
+                    color: "primary.contrastText",
+                    "&:hover": {
+                      backgroundColor: "primary.dark",
+                    },
+                    "& .MuiListItemIcon-root": {
+                      color: "primary.contrastText",
+                    },
+                  },
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    color: isActive ? "primary.contrastText" : "inherit",
+                  }}
+                >
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText primary={item.text} />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
       </List>
-    </Box>
+      <Divider />
+      <List>
+        <ListItem disablePadding>
+          <ListItemButton>
+            <ListItemIcon>
+              <SettingsIcon />
+            </ListItemIcon>
+            <ListItemText primary="Settings" />
+          </ListItemButton>
+        </ListItem>
+      </List>
+    </div>
   );
 
   return (
@@ -148,50 +197,68 @@ export default function DashboardLayout({
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Dashboard
+            {menuItems.find((item) => item.path === pathname)?.text ||
+              "Dashboard"}
           </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="body2">
-              {user?.first_name || user?.username}
-            </Typography>
+          <Box display="flex" alignItems="center">
+            {isConnected && (
+              <Chip
+                label="Connected"
+                color="success"
+                size="small"
+                sx={{ mr: 2, display: { xs: "none", sm: "flex" } }}
+              />
+            )}
             <IconButton
               size="large"
+              edge="end"
               aria-label="account of current user"
-              aria-controls="menu-appbar"
+              aria-controls="profile-menu"
               aria-haspopup="true"
               onClick={handleProfileMenuOpen}
               color="inherit"
             >
-              <AccountCircle />
+              <Avatar sx={{ width: 32, height: 32 }}>
+                {user?.first_name?.[0] || user?.username?.[0] || (
+                  <AccountIcon />
+                )}
+              </Avatar>
             </IconButton>
           </Box>
         </Toolbar>
       </AppBar>
 
       <Menu
-        id="menu-appbar"
+        id="profile-menu"
         anchorEl={anchorEl}
+        keepMounted
+        open={Boolean(anchorEl)}
+        onClose={handleProfileMenuClose}
         anchorOrigin={{
-          vertical: "top",
+          vertical: "bottom",
           horizontal: "right",
         }}
-        keepMounted
         transformOrigin={{
           vertical: "top",
           horizontal: "right",
         }}
-        open={Boolean(anchorEl)}
-        onClose={handleProfileMenuClose}
       >
-        <MenuItem onClick={handleProfileMenuClose}>
-          <ListItemIcon>
-            <Settings fontSize="small" />
-          </ListItemIcon>
-          Settings
+        <MenuItem disabled>
+          <Box>
+            <Typography variant="body2" fontWeight="medium">
+              {user?.first_name && user?.last_name
+                ? `${user.first_name} ${user.last_name}`
+                : user?.username}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {user?.email}
+            </Typography>
+          </Box>
         </MenuItem>
+        <Divider />
         <MenuItem onClick={handleLogout}>
           <ListItemIcon>
-            <Logout fontSize="small" />
+            <LogoutIcon fontSize="small" />
           </ListItemIcon>
           Logout
         </MenuItem>
@@ -200,6 +267,7 @@ export default function DashboardLayout({
       <Box
         component="nav"
         sx={{ width: { sm: drawerWidth }, flexShrink: { sm: 0 } }}
+        aria-label="navigation"
       >
         <Drawer
           variant="temporary"
@@ -242,13 +310,7 @@ export default function DashboardLayout({
         }}
       >
         <Toolbar />
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {children}
-        </motion.div>
+        {children}
       </Box>
     </Box>
   );
