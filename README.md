@@ -504,7 +504,7 @@ Want to collaborate, chat tech, or just share a meme? Hit me up!
   
 ### 💭 Final Thoughts
 
-Thanks for stopping by! If you liked this README, give it a ⭐ and follow me for more tech adventures. Let’s build something *dechberoucí* together!
+Thanks for stopping by! If you liked this README, give it a ⭐ and follow me for more tech adventures. 
 
 ![Follow Me](https://img.shields.io/github/followers/patrik-fredon?label=Follow%20Me&style=social)
 
