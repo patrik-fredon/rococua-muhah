@@ -8,6 +8,8 @@ for the FastAPI application.
 from fastapi import APIRouter
 from .user import router as user_router
 from .role import router as role_router
+from .product import router as product_router
+from .order import router as order_router
 
 # Create main API router
 api_router = APIRouter()
@@ -15,5 +17,7 @@ api_router = APIRouter()
 # Include all route modules
 api_router.include_router(user_router)
 api_router.include_router(role_router)
+api_router.include_router(product_router)
+api_router.include_router(order_router)
 
 __all__ = ["api_router"]
