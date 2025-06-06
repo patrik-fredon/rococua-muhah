@@ -323,3 +323,149 @@ async def websocket_product_updates(
     - `product_created`: New product has been added
     - `product_updated`: Product information has been changed
     - `product_deleted`: Product has been removed
+    - `inventory_updated`: Product stock quantity has changed
+    - `price_updated`: Product pricing has been updated
+    - `product_status_changed`: Product availability status changed
+
+    **Usage:**
+    ```javascript
+    const ws = new WebSocket('ws://localhost:8000/api/v1/ws/products?token=your_jwt_token');
+    ws.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        console.log('Product update:', data);
+    };
+    ```
+    """
+    if not token:
+        await websocket.close(code=4001, reason="Authentication required")
+        return
+
+    # Authenticate user
+    user = await authenticate_websocket(websocket, token, db)
+    if not user:
+        await websocket.close(code=4001, reason="Invalid authentication")
+        return
+
+    # Initialize Redis connection if not already done
+    if manager.redis_client is None:
+        await manager.initialize_redis()
+
+    channel = "products"
+
+    try:
+        await manager.connect(websocket, channel)
+
+        # Send connection confirmation
+        await manager.send_personal_message(
+            json.dumps({
+                "type": "connection_established",
+                "data": {
+                    "channel": "products",
+                    "user_id": str(user.id)
+                }
+            }),
+            websocket
+        )
+
+        # Keep connection alive
+        while True:
+            try:
+                # Wait for client messages (ping/pong or close)
+                data = await websocket.receive_text()
+
+                # Handle ping messages
+                if data == "ping":
+                    await websocket.send_text("pong")
+
+            except WebSocketDisconnect:
+                break
+            except Exception as e:
+                logger.error(f"Error in products WebSocket: {e}")
+                break
+
+    finally:
+        manager.disconnect(websocket, channel)
+
+# Event publishing functions for use by other parts of the application
+
+async def publish_order_update(order_id: str, event_type: str, data: Dict[str, Any]):
+    """
+    Publish order update event to WebSocket subscribers.
+
+    Args:
+        order_id: ID of the order that was updated
+        event_type: Type of event (e.g., 'order_status_changed')
+        data: Event data to send to subscribers
+
+    Example:
+        await publish_order_update(
+            order_id="123e4567-e89b-12d3-a456-426614174000",
+            event_type="order_status_changed",
+            data={
+                "order_id": "123e4567-e89b-12d3-a456-426614174000",
+                "old_status": "processing",
+                "new_status": "shipped",
+                "timestamp": "2023-12-07T10:30:00Z"
+            }
+        )
+    """
+    channel = f"order_{order_id}"
+    await manager.publish_event(channel, event_type, data)
+
+async def publish_product_update(event_type: str, data: Dict[str, Any]):
+    """
+    Publish product update event to WebSocket subscribers.
+
+    Args:
+        event_type: Type of event (e.g., 'inventory_updated')
+        data: Event data to send to subscribers
+
+    Example:
+        await publish_product_update(
+            event_type="inventory_updated",
+            data={
+                "product_id": "123e4567-e89b-12d3-a456-426614174000",
+                "sku": "PROD-001",
+                "old_quantity": 10,
+                "new_quantity": 5,
+                "timestamp": "2023-12-07T10:30:00Z"
+            }
+        )
+    """
+    channel = "products"
+    await manager.publish_event(channel, event_type, data)
+
+# Health check endpoint for WebSocket service
+@router.get("/health")
+async def websocket_health():
+    """
+    Health check endpoint for WebSocket service.
+
+    Returns information about active connections and Redis connectivity.
+    """
+    # Initialize Redis connection if not already done
+    if manager.redis_client is None:
+        await manager.initialize_redis()
+
+    redis_status = "connected" if manager.redis_client else "disconnected"
+
+    # Test Redis connection
+    if manager.redis_client:
+        try:
+            await manager.redis_client.ping()
+            redis_status = "healthy"
+        except:
+            redis_status = "unhealthy"
+
+    total_connections = sum(len(connections) for connections in manager.active_connections.values())
+
+    return {
+        "status": "healthy",
+        "redis_status": redis_status,
+        "active_channels": list(manager.active_connections.keys()),
+        "total_connections": total_connections,
+        "channel_details": {
+            channel: len(connections)
+            for channel, connections in manager.active_connections.items()
+        }
+    }
