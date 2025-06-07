@@ -1,36 +1,4 @@
-import axios from "axios";
-import Cookies from "js-cookie";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-
-// Create axios instance
-const apiClient = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-// Add auth token to requests
-apiClient.interceptors.request.use((config) => {
-  const token = Cookies.get("access_token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Handle auth errors
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      Cookies.remove("access_token");
-      window.location.href = "/login";
-    }
-    return Promise.reject(error);
-  }
-);
+import { apiClient } from "./baseApi";
 
 export interface LoginRequest {
   username: string;
@@ -63,31 +31,29 @@ export interface User {
 
 export const authApi = {
   login: async (username: string, password: string): Promise<LoginResponse> => {
-    const response = await apiClient.post("/api/v1/auth/login", {
+    return apiClient.post<LoginResponse>("/api/v1/users/login", {
       username,
       password,
     });
-    return response.data;
   },
 
   getCurrentUser: async (): Promise<User> => {
-    const response = await apiClient.get("/api/v1/auth/me");
-    return response.data;
+    return apiClient.get<User>("/api/v1/users/me");
   },
 
   logout: async (): Promise<void> => {
-    await apiClient.post("/api/v1/auth/logout");
+    return apiClient.post<void>("/api/v1/users/logout");
   },
 
   changePassword: async (
     currentPassword: string,
     newPassword: string
   ): Promise<void> => {
-    await apiClient.post("/api/v1/auth/change-password", {
+    return apiClient.post<void>("/api/v1/users/change-password", {
       current_password: currentPassword,
       new_password: newPassword,
     });
   },
 };
 
-export default apiClient;
+export { apiClient };

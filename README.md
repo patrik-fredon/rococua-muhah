@@ -1,497 +1,500 @@
-# FastAPI Backend Application
+# FastAPI + Next.js Dashboard System
 
-A comprehensive RESTful API backend built with FastAPI, featuring user authentication, role-based authorization, real-time WebSocket updates, and a complete e-commerce order management system.
+A modern, full-stack dashboard system built with FastAPI backend and Next.js frontend, featuring unified launching, secure authentication, real-time updates, and comprehensive CRUD operations.
 
-## 🚀 Features
+## 🚀 Quick Start
 
-- **Authentication & Authorization**: JWT-based authentication with role-based access control
-- **User Management**: Complete user registration, login, and profile management
-- **Product Management**: Full CRUD operations for products with inventory tracking
-- **Order System**: Comprehensive order processing with status tracking
-- **Real-time Updates**: WebSocket endpoints for live order and product updates
-- **Database Migrations**: Alembic integration for schema version control
-- **Admin Dashboard**: Static file serving for admin interface
-- **API Documentation**: Auto-generated OpenAPI/Swagger documentation
-- **Security Best Practices**: Password hashing, JWT tokens, and input validation
+### Using the Unified Launcher (Recommended)
 
-## 🛠 Technology Stack
-
-- **Framework**: FastAPI 0.104.0+
-- **Database**: SQLAlchemy 2.0+ with SQLite (configurable)
-- **Authentication**: python-jose with JWT tokens
-- **Password Hashing**: Passlib with bcrypt
-- **Real-time**: WebSockets with Redis pub/sub
-- **Migrations**: Alembic 1.12.0+
-- **Validation**: Pydantic 2.0+ with email validation
-- **ASGI Server**: Uvicorn with standard extras
-
-## 📋 Prerequisites
-
-- Python 3.8+
-- Redis server (optional, fallback mode available)
-- Git
-
-## 🔧 Installation & Setup
-
-### 1. Clone the Repository
+The easiest way to get started is using our unified launcher system:
 
 ```bash
+# Clone the repository
 git clone <repository-url>
 cd rococua-muhah
+
+# Quick start (installs dependencies, sets up environment, and launches)
+make quick-start
+
+# Or use the launcher directly
+python3 launcher.py --mode dev
+
+# Or use platform-specific scripts
+./launch.sh --mode dev     # Unix/Linux/macOS
+launch.bat --mode dev      # Windows
 ```
 
-### 2. Create Virtual Environment
+### Manual Setup
+
+If you prefer manual setup:
 
 ```bash
-python -m venv venv
+# 1. Setup environment
+make setup-env
 
-# On Windows
-venv\Scripts\activate
+# 2. Install dependencies
+make install
 
-# On macOS/Linux
-source venv/bin/activate
+# 3. Run database migrations
+make migrate
+
+# 4. Start development servers
+make dev
 ```
 
-### 3. Install Dependencies
+## 📋 Features
 
-```bash
-pip install -r requirements.txt
+- **🔄 Unified Launcher**: Single command to start both backend and frontend
+- **🛡️ Secure Authentication**: JWT-based auth with role-based access control
+- **⚡ Real-time Updates**: WebSocket integration for live data
+- **🔧 Generic CRUD System**: Reusable patterns for any entity
+- **📱 Responsive Dashboard**: Modern Next.js frontend with Material-UI
+- **🐳 Docker Support**: Complete containerization for production deployment
+- **🔍 API Documentation**: Auto-generated Swagger/OpenAPI docs
+- **📊 Performance Optimized**: Caching, compression, and monitoring
+- **🔒 Security Headers**: Production-ready security configurations
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────┐    ┌─────────────────────┐
+│   Frontend (Next.js) │    │   Backend (FastAPI) │
+├─────────────────────┤    ├─────────────────────┤
+│ • Generic UI Hooks  │    │ • API Routes        │
+│ • CRUD Components   │◄──►│ • Service Layer     │
+│ • Base API Client   │    │ • Base CRUD Classes │
+│ • Type-safe APIs    │    │ • Database Models   │
+└─────────────────────┘    └─────────────────────┘
+           │                           │
+           └─────────┬─────────────────┘
+                     │
+        ┌─────────────────────┐
+        │   Infrastructure    │
+        ├─────────────────────┤
+        │ • PostgreSQL/SQLite │
+        │ • Redis (WebSocket) │
+        │ • Docker & Compose  │
+        │ • Nginx (Production)│
+        └─────────────────────┘
 ```
 
-### 4. Environment Configuration
+## 🛠️ Technology Stack
 
-Copy the example environment file and configure it:
+### Backend
+
+- **FastAPI**: Modern Python web framework
+- **SQLAlchemy**: ORM with Alembic migrations
+- **Pydantic**: Data validation and settings
+- **Redis**: Caching and WebSocket scaling
+- **JWT**: Secure authentication
+- **WebSockets**: Real-time communication
+
+### Frontend
+
+- **Next.js 14**: React framework with App Router
+- **TypeScript**: Type-safe development
+- **Material-UI**: Component library
+- **TanStack Query**: Data fetching and caching
+- **Framer Motion**: Animations
+- **Axios**: HTTP client
+
+### Infrastructure
+
+- **Docker & Compose**: Containerization
+- **PostgreSQL**: Production database
+- **Redis**: Caching and sessions
+- **Nginx**: Reverse proxy (production)
+
+## 🚀 Available Commands
+
+### Launcher Commands
 
 ```bash
-cp .env.example .env
+# Development mode (default)
+python3 launcher.py
+python3 launcher.py --mode dev
+
+# Production mode
+python3 launcher.py --mode prod
+
+# Skip dependency installation
+python3 launcher.py --no-install
+
+# Skip database migrations
+python3 launcher.py --no-migrate
+
+# Don't open browser automatically
+python3 launcher.py --no-browser
 ```
 
-Edit `.env` with your settings:
+### Makefile Commands
 
 ```bash
-# Database Configuration
+# Development
+make dev              # Start development servers
+make dev-backend      # Start only backend
+make dev-frontend     # Start only frontend
+
+# Installation
+make install          # Install all dependencies
+make install-backend  # Install backend dependencies
+make install-frontend # Install frontend dependencies
+
+# Environment
+make setup-env        # Setup environment files
+make migrate          # Run database migrations
+make seed             # Seed database with sample data
+
+# Production
+make prod             # Start production servers
+make build            # Build for production
+make deploy           # Deploy to production
+
+# Docker
+make docker           # Build and run with Docker
+make docker-build     # Build Docker images
+make docker-up        # Start Docker services
+make docker-down      # Stop Docker services
+
+# Code Quality
+make test             # Run all tests
+make lint             # Run linting
+make format           # Format code
+
+# Utilities
+make clean            # Clean build artifacts
+make health           # Check service health
+make status           # Show project status
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+```env
+# Database
 DATABASE_URL=sqlite:///./app.db
 
-# Security Settings (REQUIRED - Generate a secure secret key)
-SECRET_KEY=your-super-secret-key-here-generate-a-secure-one
+# Security (CHANGE IN PRODUCTION!)
+SECRET_KEY=your-super-secret-key-here
 ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
 
-# Redis Configuration (Optional)
-REDIS_URL=redis://localhost:6379/0
-
-# API Configuration
+# API
+PROJECT_NAME=FastAPI Dashboard
 API_V1_PREFIX=/api/v1
-PROJECT_NAME=FastAPI Project
-PROJECT_VERSION=1.0.0
 
-# CORS Settings
+# CORS
 BACKEND_CORS_ORIGINS=http://localhost:3000,http://localhost:8080
 
-# Environment Configuration
+# Environment
 ENVIRONMENT=development
 DEBUG=true
 ```
 
-**⚠️ Important**: Generate a secure `SECRET_KEY` for production:
+### Production Configuration
 
-```bash
-python -c "import secrets; print(secrets.token_urlsafe(32))"
+For production deployment:
+
+```env
+ENVIRONMENT=production
+DEBUG=false
+SECRET_KEY=your-production-secret-key-minimum-32-characters-long
+SECURE_COOKIES=true
+HTTPS_ONLY=true
+DATABASE_URL=postgresql://user:password@localhost:5432/dashboard_db
+BACKEND_CORS_ORIGINS=https://yourdomain.com
+WORKERS=4
+LOG_LEVEL=WARNING
+SWAGGER_UI_ENABLED=false
 ```
 
-## 🗃 Database Setup
+## 🐳 Docker Deployment
 
-### Initialize Database
-
-The application uses Alembic for database migrations:
+### Development with Docker
 
 ```bash
-# Initialize the database with the latest schema
-alembic upgrade head
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
 ```
 
-### Create New Migration
-
-When you modify models, create a new migration:
+### Production Deployment
 
 ```bash
-# Auto-generate migration from model changes
-alembic revision --autogenerate -m "Description of changes"
+# Build and deploy
+make docker-build
+docker-compose --profile production up -d
 
-# Apply the migration
-alembic upgrade head
-```
-
-### Migration Management
-
-```bash
-# Check current migration status
-alembic current
-
-# View migration history
-alembic history
-
-# Downgrade to previous migration
-alembic downgrade -1
-
-# Upgrade to specific revision
-alembic upgrade <revision_id>
-```
-
-### Verify Database Setup
-
-```bash
-python verify_migration.py
-```
-
-## 🚀 Running the Application
-
-### Development Server
-
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### Production Server
-
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
-```
-
-### With Custom Configuration
-
-```bash
-# Specify custom host and port
-uvicorn app.main:app --host 127.0.0.1 --port 8080
-
-# With SSL (production)
-uvicorn app.main:app --host 0.0.0.0 --port 443 --ssl-keyfile=./key.pem --ssl-certfile=./cert.pem
+# Or use the complete deployment command
+make deploy
 ```
 
 ## 📚 API Documentation
 
-Once the server is running, access the interactive API documentation:
+When running in development mode, API documentation is available at:
 
 - **Swagger UI**: http://localhost:8000/docs
 - **ReDoc**: http://localhost:8000/redoc
 - **OpenAPI Schema**: http://localhost:8000/openapi.json
 
-### Main API Endpoints
+## 🔐 Authentication
 
-```
-# Authentication
-POST   /api/v1/auth/register     - User registration
-POST   /api/v1/auth/login        - User login
-POST   /api/v1/auth/refresh      - Refresh JWT token
+The system uses JWT-based authentication with role-based access control:
 
-# Users
-GET    /api/v1/users/me          - Get current user profile
-PUT    /api/v1/users/me          - Update user profile
-POST   /api/v1/users/change-password - Change password
+```typescript
+// Login
+const response = await authApi.login({
+  email: "admin@example.com",
+  password: "password",
+});
 
-# Products
-GET    /api/v1/products          - List products
-POST   /api/v1/products          - Create product (admin)
-GET    /api/v1/products/{id}     - Get product details
-PUT    /api/v1/products/{id}     - Update product (admin)
-DELETE /api/v1/products/{id}     - Delete product (admin)
-
-# Orders
-GET    /api/v1/orders            - List user's orders
-POST   /api/v1/orders            - Create new order
-GET    /api/v1/orders/{id}       - Get order details
-PUT    /api/v1/orders/{id}       - Update order status
-
-# Roles (Admin only)
-GET    /api/v1/roles             - List roles
-POST   /api/v1/roles             - Create role
-PUT    /api/v1/roles/{id}        - Update role
-DELETE /api/v1/roles/{id}        - Delete role
+// Use authenticated requests
+const users = await userApi.getAll();
 ```
 
-## 🔌 Real-time WebSocket Integration
+### Default Users
 
-The application provides real-time updates via WebSocket endpoints. For detailed WebSocket documentation, see [`README_WEBSOCKETS.md`](README_WEBSOCKETS.md).
+After running `make seed`, the following users are available:
 
-### WebSocket Endpoints
+- **Admin**: admin@example.com / password
+- **User**: user@example.com / password
 
-- **Order Updates**: `/api/v1/ws/orders/{order_id}`
-- **Product Updates**: `/api/v1/ws/products`
-- **Health Check**: `/api/v1/ws/health`
+## 🔄 Adding New Entities
 
-### Quick WebSocket Example
+The system provides a generic CRUD pattern that makes adding new entities simple:
 
-```javascript
-// Connect to order updates
-const token = "your_jwt_token";
-const orderId = "123e4567-e89b-12d3-a456-426614174000";
-const ws = new WebSocket(
-  `ws://localhost:8000/api/v1/ws/orders/${orderId}?token=${token}`
-);
-
-ws.onmessage = function (event) {
-  const data = JSON.parse(event.data);
-  console.log("Order update:", data);
-};
-```
-
-### Redis Setup for WebSocket Scaling
-
-For production WebSocket scaling, set up Redis:
-
-```bash
-# Using Docker
-docker run -d -p 6379:6379 redis:7-alpine
-
-# Or install locally
-redis-server
-```
-
-## 🏗 Admin Dashboard
-
-The application serves static files for an admin dashboard:
-
-- **Dashboard URL**: http://localhost:8000/dashboard/
-- **Health Check**: http://localhost:8000/dashboard/health
-
-Dashboard files should be placed in the `app/dashboard/` directory.
-
-## 🔐 Security Features
-
-### Authentication
-
-- JWT tokens with configurable expiration
-- Secure password hashing using bcrypt
-- Token refresh mechanism
-
-### Authorization
-
-- Role-based access control (RBAC)
-- Resource ownership validation
-- Permission decorators for endpoints
-
-### Security Best Practices
-
-- Input validation with Pydantic
-- SQL injection protection via SQLAlchemy ORM
-- CORS configuration
-- Environment-based configuration
-- Secure headers and middleware
-
-### Security Configuration
+### 1. Backend Setup
 
 ```python
-# Recommended production settings
-SECRET_KEY=<strong-randomly-generated-key>
-ACCESS_TOKEN_EXPIRE_MINUTES=15
-ENVIRONMENT=production
-DEBUG=false
+# models/entity.py
+class Entity(Base):
+    __tablename__ = "entities"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    name = Column(String(255), nullable=False)
+
+# schemas/entity.py
+class EntityCreate(BaseModel):
+    name: str
+
+class EntityUpdate(BaseModel):
+    name: Optional[str] = None
+
+# services/entity_service.py
+class EntityService(CRUDBase[Entity, EntityCreate, EntityUpdate]):
+    pass
+
+entity_service = EntityService(Entity)
+```
+
+### 2. Frontend Setup
+
+```typescript
+// services/entitiesApi.ts
+export const entityService = createCrudService<
+  Entity,
+  EntityCreate,
+  EntityUpdate
+>("/api/v1/entities");
+
+// hooks/useEntityQuery.ts
+const entityHooks = createCrudHooks("entity", entityService);
+export const useEntities = entityHooks.useGetAll;
+export const useCreateEntity = entityHooks.useCreate;
 ```
 
 ## 🧪 Testing
 
-### Running WebSocket Tests
-
 ```bash
-# Make sure server is running on localhost:8000
-python test_websockets.py
+# Run all tests
+make test
+
+# Backend tests only
+make test-backend
+
+# Frontend tests only
+make test-frontend
+
+# With coverage
+cd app && python -m pytest --cov=app tests/
 ```
 
-Update the `TEST_TOKEN` in the test file with a valid JWT token.
+## 📊 Monitoring & Health Checks
 
-### Manual API Testing
+### Health Endpoints
+
+- **Backend Health**: http://localhost:8000/health
+- **Frontend Health**: http://localhost:3000/ (Next.js built-in)
+
+### Monitoring
 
 ```bash
-# Test authentication
-curl -X POST "http://localhost:8000/api/v1/auth/login" \
-     -H "Content-Type: application/json" \
-     -d '{"username": "testuser", "password": "testpass"}'
+# Check service status
+make status
 
-# Test protected endpoint
-curl -X GET "http://localhost:8000/api/v1/users/me" \
-     -H "Authorization: Bearer <your_jwt_token>"
+# View logs
+make logs-backend
+make logs-frontend
+
+# Docker logs
+make docker-logs
 ```
 
-## 🚀 Deployment
+## 🔧 Development
 
-### Environment Preparation
+### Project Structure
 
-1. **Set Production Environment Variables**:
+```
+├── app/                    # FastAPI backend
+│   ├── api/               # API routes
+│   ├── core/              # Core configuration
+│   ├── models/            # Database models
+│   ├── schemas/           # Pydantic schemas
+│   ├── services/          # Business logic
+│   └── main.py           # Application entry point
+├── dashboard/             # Next.js frontend
+│   ├── app/              # App Router pages
+│   ├── components/       # React components
+│   ├── hooks/            # Custom hooks
+│   ├── services/         # API services
+│   └── utils/            # Utilities
+├── launcher.py           # Unified launcher
+├── docker-compose.yml    # Docker configuration
+├── Makefile             # Development commands
+└── README.md            # This file
+```
+
+### Code Quality
+
+```bash
+# Format code
+make format
+
+# Run linting
+make lint
+
+# Type checking
+cd dashboard && npm run type-check
+```
+
+## 🚀 Production Deployment
+
+### Prerequisites
+
+- Docker & Docker Compose
+- Domain name with SSL certificate
+- PostgreSQL database
+- Redis instance
+
+### Deployment Steps
+
+1. **Configure environment**:
 
    ```bash
-   ENVIRONMENT=production
-   DEBUG=false
-   SECRET_KEY=<secure-production-key>
-   DATABASE_URL=postgresql://user:pass@localhost/dbname
+   cp .env.example .env
+   # Edit .env with production values
    ```
 
-2. **Install Production Dependencies**:
+2. **Build and deploy**:
+
    ```bash
-   pip install uvicorn[standard] gunicorn
+   make deploy
    ```
 
-### Production Deployment
+3. **Setup SSL** (optional):
+   ```bash
+   # Copy SSL certificates to ./ssl/
+   docker-compose --profile production up -d
+   ```
 
-#### Using Gunicorn + Uvicorn Workers
+## 📈 Performance
 
-```bash
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000
-```
+### Optimizations Included
 
-#### Using Docker
+- **Backend**:
 
-```dockerfile
-FROM python:3.11-slim
+  - FastAPI with async/await
+  - SQLAlchemy connection pooling
+  - Redis caching
+  - Compression middleware
+  - Security headers
 
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+- **Frontend**:
+  - Next.js optimizations
+  - React Query caching
+  - Code splitting
+  - Image optimization
+  - Static generation
 
-COPY . .
+### Benchmarks
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
+On a typical development machine:
 
-#### Nginx Reverse Proxy
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-
-    location / {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-
-    # WebSocket support
-    location /api/v1/ws/ {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-    }
-}
-```
-
-### CI/CD Pipeline Example
-
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: 3.11
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Run migrations
-        run: alembic upgrade head
-      - name: Deploy to production
-        run: # Your deployment script
-```
+- **Cold start**: ~5-10 seconds
+- **Hot reload**: ~1-2 seconds
+- **API response**: <100ms
+- **Frontend render**: <200ms
 
 ## 🤝 Contributing
 
-### Development Setup
-
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes
-4. Run tests: `python -m pytest`
-5. Commit changes: `git commit -am 'Add feature'`
-6. Push to branch: `git push origin feature-name`
-7. Submit a pull request
-
-### Code Style
-
-- Follow PEP 8 guidelines
-- Use type hints where appropriate
-- Write docstrings for functions and classes
-- Add comments for complex logic
-
-### Database Changes
-
-- Always create migrations for model changes
-- Test migrations both up and down
-- Include migration in your pull request
-
-### API Changes
-
-- Update OpenAPI documentation
-- Maintain backward compatibility when possible
-- Version breaking changes appropriately
-
-## 📝 Project Structure
-
-```
-├── app/
-│   ├── __init__.py
-│   ├── main.py                 # FastAPI application entry point
-│   ├── api/                    # API route handlers
-│   │   ├── __init__.py
-│   │   ├── user.py
-│   │   ├── product.py
-│   │   ├── order.py
-│   │   ├── role.py
-│   │   └── ws.py              # WebSocket endpoints
-│   ├── auth/                   # Authentication & authorization
-│   │   ├── __init__.py
-│   │   ├── jwt.py
-│   │   ├── oauth2.py
-│   │   ├── password.py
-│   │   ├── permissions.py
-│   │   ├── services.py
-│   │   └── schemas.py
-│   ├── core/                   # Core configuration
-│   │   ├── __init__.py
-│   │   ├── config.py
-│   │   └── database.py
-│   ├── models/                 # SQLAlchemy models
-│   │   ├── __init__.py
-│   │   ├── user.py
-│   │   ├── role.py
-│   │   ├── product.py
-│   │   ├── order.py
-│   │   └── order_item.py
-│   ├── schemas/                # Pydantic schemas
-│   │   ├── __init__.py
-│   │   ├── user.py
-│   │   ├── product.py
-│   │   └── order.py
-│   ├── dashboard/              # Static admin dashboard files
-│   ├── services/               # Business logic services
-│   ├── tests/                  # Test files
-│   └── utils/                  # Utility functions
-├── migrations/                 # Alembic migration files
-├── alembic.ini                # Alembic configuration
-├── requirements.txt           # Python dependencies
-├── .env.example              # Environment variables template
-├── README.md                 # This file
-├── README_WEBSOCKETS.md      # WebSocket documentation
-└── test_websockets.py        # WebSocket testing script
-```
-
-## 📞 Support & Documentation
-
-- **API Documentation**: http://localhost:8000/docs
-- **WebSocket Guide**: [`README_WEBSOCKETS.md`](README_WEBSOCKETS.md)
-- **Issues**: Create an issue for bug reports or feature requests
+2. Create a feature branch
+3. Make changes with tests
+4. Run quality checks: `make lint && make test`
+5. Submit a pull request
 
 ## 📄 License
 
-[Your License Here]
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🆘 Support
+
+### Common Issues
+
+**Port already in use**:
+
+```bash
+# Kill processes on ports 3000 and 8000
+sudo lsof -ti:3000,8000 | xargs kill -9
+```
+
+**Database migration issues**:
+
+```bash
+# Reset database
+make reset-db
+```
+
+**Docker issues**:
+
+```bash
+# Clean Docker
+make docker-clean
+```
+
+### Getting Help
+
+- Check the [troubleshooting guide](./docs/troubleshooting.md)
+- Review [API documentation](http://localhost:8000/docs)
+- Open an issue on GitHub
+
+## 🎯 Roadmap
+
+- [ ] Rate limiting middleware
+- [ ] Email notifications
+- [ ] File upload system
+- [ ] Advanced search & filtering
+- [ ] Audit logging
+- [ ] Multi-tenancy support
+- [ ] API versioning
+- [ ] GraphQL endpoint
 
 ---
 
-**Happy coding!** 🎉
+**Built with ❤️ using FastAPI and Next.js**

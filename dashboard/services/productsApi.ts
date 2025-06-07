@@ -1,4 +1,4 @@
-import apiClient from "./authApi";
+import { createCrudService } from "./baseApi";
 
 export interface Product {
   id: string;
@@ -73,28 +73,30 @@ export interface ProductUpdate {
   meta_description?: string;
 }
 
+// Create products CRUD service using the generic base
+const productsService = createCrudService<
+  Product,
+  ProductCreate,
+  ProductUpdate
+>("/api/v1/products");
+
 export const productsApi = {
   // Get all products (public)
   getProducts: async (
     skip: number = 0,
     limit: number = 100
   ): Promise<Product[]> => {
-    const response = await apiClient.get(
-      `/api/v1/products?skip=${skip}&limit=${limit}`
-    );
-    return response.data;
+    return productsService.getAll({ skip, limit });
   },
 
   // Get product by ID (public)
   getProduct: async (productId: string): Promise<Product> => {
-    const response = await apiClient.get(`/api/v1/products/${productId}`);
-    return response.data;
+    return productsService.getById(productId);
   },
 
   // Create new product (admin only)
   createProduct: async (productData: ProductCreate): Promise<Product> => {
-    const response = await apiClient.post("/api/v1/products", productData);
-    return response.data;
+    return productsService.create(productData);
   },
 
   // Update product (admin only)
@@ -102,15 +104,45 @@ export const productsApi = {
     productId: string,
     productData: ProductUpdate
   ): Promise<Product> => {
-    const response = await apiClient.patch(
-      `/api/v1/products/${productId}`,
-      productData
-    );
-    return response.data;
+    return productsService.update(productId, productData);
   },
 
   // Delete product (admin only)
   deleteProduct: async (productId: string): Promise<void> => {
-    await apiClient.delete(`/api/v1/products/${productId}`);
+    return productsService.delete(productId);
+  },
+
+  // Additional product-specific methods
+  getProductsByCategory: async (
+    category: string,
+    skip: number = 0,
+    limit: number = 100
+  ): Promise<Product[]> => {
+    return productsService.search({ category }, { skip, limit });
+  },
+
+  getProductsByBrand: async (
+    brand: string,
+    skip: number = 0,
+    limit: number = 100
+  ): Promise<Product[]> => {
+    return productsService.search({ brand }, { skip, limit });
+  },
+
+  getFeaturedProducts: async (
+    skip: number = 0,
+    limit: number = 100
+  ): Promise<Product[]> => {
+    return productsService.search({ is_featured: true }, { skip, limit });
+  },
+
+  getInStockProducts: async (
+    skip: number = 0,
+    limit: number = 100
+  ): Promise<Product[]> => {
+    return productsService.search({ is_in_stock: true }, { skip, limit });
   },
 };
+
+// Export the service for direct access if needed
+export { productsService };

@@ -1,106 +1,78 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { createCrudHooks } from "./useGenericQuery";
 import {
-  productsApi,
+  productsService,
   Product,
   ProductCreate,
   ProductUpdate,
 } from "../services/productsApi";
-import toast from "react-hot-toast";
 
-// Query keys
-export const productKeys = {
-  all: ["products"] as const,
-  lists: () => [...productKeys.all, "list"] as const,
-  list: (filters: string) => [...productKeys.lists(), { filters }] as const,
-  details: () => [...productKeys.all, "detail"] as const,
-  detail: (id: string) => [...productKeys.details(), id] as const,
-};
+// Create products CRUD hooks using the generic factory
+const productHooks = createCrudHooks<Product, ProductCreate, ProductUpdate>(
+  "Product",
+  productsService
+);
 
-// Get all products
-export function useProducts(skip: number = 0, limit: number = 100) {
-  return useQuery({
-    queryKey: productKeys.list(`skip=${skip}&limit=${limit}`),
-    queryFn: () => productsApi.getProducts(skip, limit),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+// Export all hooks with product-specific names
+export const useProducts = productHooks.useGetAll;
+export const useProduct = productHooks.useGetById;
+export const useCreateProduct = productHooks.useCreate;
+export const useUpdateProduct = productHooks.useUpdate;
+export const useDeleteProduct = productHooks.useDelete;
+
+// Export additional product-specific hooks
+export const useProductSearch = productHooks.useSearch;
+export const useProductCount = productHooks.useCount;
+export const useInvalidateProducts = productHooks.useInvalidateAll;
+export const useInvalidateProductLists = productHooks.useInvalidateLists;
+export const usePrefetchProduct = productHooks.usePrefetchDetail;
+
+// Export query keys for external use
+export const productKeys = productHooks.queryKeys;
+
+// Product-specific hooks for common queries
+export function useProductsByCategory(
+  category: string,
+  skip: number = 0,
+  limit: number = 100
+) {
+  return productHooks.useSearch({ category }, { skip, limit });
 }
 
-// Get product by ID
-export function useProduct(productId: string) {
-  return useQuery({
-    queryKey: productKeys.detail(productId),
-    queryFn: () => productsApi.getProduct(productId),
-    enabled: !!productId,
-  });
+export function useProductsByBrand(
+  brand: string,
+  skip: number = 0,
+  limit: number = 100
+) {
+  return productHooks.useSearch({ brand }, { skip, limit });
 }
 
-// Create product mutation
-export function useCreateProduct() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (productData: ProductCreate) =>
-      productsApi.createProduct(productData),
-    onSuccess: (newProduct: Product) => {
-      // Invalidate and refetch products list
-      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      toast.success("Product created successfully");
-    },
-    onError: (error: any) => {
-      const message =
-        error.response?.data?.detail || "Failed to create product";
-      toast.error(message);
-    },
-  });
+export function useFeaturedProducts(skip: number = 0, limit: number = 100) {
+  return productHooks.useSearch({ is_featured: true }, { skip, limit });
 }
 
-// Update product mutation
-export function useUpdateProduct() {
-  const queryClient = useQueryClient();
+export function useInStockProducts(skip: number = 0, limit: number = 100) {
+  return productHooks.useSearch({ is_in_stock: true }, { skip, limit });
+}
 
-  return useMutation({
-    mutationFn: ({
+// Legacy wrapper functions for backward compatibility
+export function useUpdateProductLegacy() {
+  const updateProduct = useUpdateProduct();
+
+  return {
+    ...updateProduct,
+    mutate: ({
       productId,
       productData,
     }: {
       productId: string;
       productData: ProductUpdate;
-    }) => productsApi.updateProduct(productId, productData),
-    onSuccess: (updatedProduct: Product) => {
-      // Update the product in the cache
-      queryClient.setQueryData(
-        productKeys.detail(updatedProduct.id),
-        updatedProduct
-      );
-      // Invalidate products list to refresh
-      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      toast.success("Product updated successfully");
-    },
-    onError: (error: any) => {
-      const message =
-        error.response?.data?.detail || "Failed to update product";
-      toast.error(message);
-    },
-  });
-}
-
-// Delete product mutation
-export function useDeleteProduct() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (productId: string) => productsApi.deleteProduct(productId),
-    onSuccess: (_: void, productId: string) => {
-      // Remove the product from the cache
-      queryClient.removeQueries({ queryKey: productKeys.detail(productId) });
-      // Invalidate products list to refresh
-      queryClient.invalidateQueries({ queryKey: productKeys.lists() });
-      toast.success("Product deleted successfully");
-    },
-    onError: (error: any) => {
-      const message =
-        error.response?.data?.detail || "Failed to delete product";
-      toast.error(message);
-    },
-  });
+    }) => updateProduct.mutate({ id: productId, data: productData }),
+    mutateAsync: ({
+      productId,
+      productData,
+    }: {
+      productId: string;
+      productData: ProductUpdate;
+    }) => updateProduct.mutateAsync({ id: productId, data: productData }),
+  };
 }
